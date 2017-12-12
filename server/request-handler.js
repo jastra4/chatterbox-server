@@ -20,6 +20,20 @@ var defaultCorsHeaders = {
 
 var requestHandler = function(request, response) {
   const { method, url, postdata } = request;
+  var statusCode = 404;
+  if (request.method === 'PUT') {
+    statusCode = 202;
+  } else if (request.method === 'DELETE') {
+    statusCode = 203;
+  } else if (request.method === 'OPTIONS') {
+    statusCode = 204;
+  }
+  
+
+  var headers = defaultCorsHeaders;
+  headers['Content-Type'] = 'text/plain';
+  
+
   // Request and Response come from node's http module.
   //
   // They include information about both the incoming request, such as
@@ -36,20 +50,38 @@ var requestHandler = function(request, response) {
   // console.logs in your code.
   console.log('Serving request type ' + method + ' for url ' + url);
   if (request.method === 'POST') {
-  // const responseBody = { request.postdata, request.method, request.url };
-    response.write(JSON.stringify(postdata.message));
-    //respone.end();
+    var postBody = '';
+    request.on('data', function(data) {
+      postBody += data;
+      console.log('Partial body: ' + postBody);
+    });
+    request.on('end', function() {
+      console.log('Partial body: ' + postBody);
+    });
+    //response.statusCode = 201;
+    response.writeHead(201, headers);
+    response.end(postBody);
+  } else if (request.method === 'GET') {
+
+  /*  ---- we think this is the problem area: we are getting data request but not accessing current data ---- */
+
+    var body = [];
+    request.on('data', (chunk) => {
+      console.log(chunk);
+      body.push(chunk);  
+    });
+    var result = JSON.stringify({results: body});
+
+    response.writeHead(200, headers);
+    response.end(result);
+  } else if (request.method === 'OPTIONS') {
+    response.writeHead(200);
+    response.end();
   }
+};
   // The outgoing status.
-  var statusCode = 200;
 
   // See the note below about CORS headers.
-  var headers = defaultCorsHeaders;
-  var body = [];
-  request.postdata;
-  request.on('data', (chunk) => {
-    body.push(request.postdata);  
-  });
   // Tell the client we are sending them plain text.
   //
   // You will need to change this if you are sending something
@@ -57,8 +89,6 @@ var requestHandler = function(request, response) {
 
   // .writeHead() writes to the request line and headers of the response,
   // which includes the status and all headers.
-  headers['Content-Type'] = 'text/plain';
-  response.writeHead(statusCode, headers);
 
   // Make sure to always call response.end() - Node may not send
   // anything back to the client until you do. The string you pass to
@@ -67,10 +97,6 @@ var requestHandler = function(request, response) {
   //
   // Calling .end "flushes" the response's internal buffer, forcing
   // node to actually send all the data over to the client.
-  var result = JSON.stringify({results: body});
-
-  response.end(result);
-};
 
 // These headers will allow Cross-Origin Resource Sharing (CORS).
 // This code allows this server to talk to websites that
