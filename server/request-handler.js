@@ -22,20 +22,10 @@ var data = {results: []};
 
 var requestHandler = function(request, response) {
   const { method, url, postdata } = request;
-  // var statusCode = 404;
-  // if (request.method === 'PUT') {
-  //   statusCode = 202;
-  // } else if (request.method === 'DELETE') {
-  //   statusCode = 203;
-  // } else if (request.method === 'OPTIONS') {
-  //   statusCode = 204;
-  // }
-  
 
   var headers = defaultCorsHeaders;
   headers['Content-Type'] = 'text/plain';
   
-
   // Request and Response come from node's http module.
   //
   // They include information about both the incoming request, such as
@@ -54,13 +44,8 @@ var requestHandler = function(request, response) {
 
   if (request.method === 'POST' && request.url === '/classes/messages') {
 
-    if (data[url] === undefined) {
-      data[url] = [];
-    }
-
     var postBody = '';
     request.on('data', function(message) {
-      console.log(message);
       postBody += message;
       
     });
@@ -72,14 +57,6 @@ var requestHandler = function(request, response) {
 
   } else if (request.method === 'GET' && request.url === '/classes/messages') {
 
-  /*  ---- we think this is the problem area: we are getting data request but not accessing current data ---- */
-
-    // var body = [];
-    // request.on('data', (chunk) => {
-    //   console.log(chunk);
-    //   body.push(chunk);  
-    // });
-    // var result = JSON.stringify({results: body});
     var result = JSON.stringify(data);
     response.writeHead(200, headers);
     response.end(result);
@@ -88,29 +65,49 @@ var requestHandler = function(request, response) {
     
     response.writeHead(200, headers);
     response.end();
+  } else if (request.method === 'DELETE') {
+    data.results = [];
+    response.writeHead(200, headers);
+    response.end();
+  } else if (request.method === 'PUT') {
+    data.results = [];
+
+    var postBody = '';
+    request.on('data', function(message) {
+      postBody += message;
+      
+    });
+    request.on('end', function() {
+      data.results.push(JSON.parse(postBody));
+      response.writeHead(201, headers);
+      response.end(postBody);
+    });    
   } else {
     response.writeHead(404, headers);
     response.end();    
   }
 };
-  // The outgoing status.
 
-  // See the note below about CORS headers.
-  // Tell the client we are sending them plain text.
-  //
-  // You will need to change this if you are sending something
-  // other than plain text, like JSON or HTML.
+exports.requestHandler = requestHandler;
 
-  // .writeHead() writes to the request line and headers of the response,
-  // which includes the status and all headers.
+// The outgoing status.
 
-  // Make sure to always call response.end() - Node may not send
-  // anything back to the client until you do. The string you pass to
-  // response.end() will be the body of the response - i.e. what shows
-  // up in the browser.
-  //
-  // Calling .end "flushes" the response's internal buffer, forcing
-  // node to actually send all the data over to the client.
+// See the note below about CORS headers.
+// Tell the client we are sending them plain text.
+//
+// You will need to change this if you are sending something
+// other than plain text, like JSON or HTML.
+
+// .writeHead() writes to the request line and headers of the response,
+// which includes the status and all headers.
+
+// Make sure to always call response.end() - Node may not send
+// anything back to the client until you do. The string you pass to
+// response.end() will be the body of the response - i.e. what shows
+// up in the browser.
+//
+// Calling .end "flushes" the response's internal buffer, forcing
+// node to actually send all the data over to the client.
 
 // These headers will allow Cross-Origin Resource Sharing (CORS).
 // This code allows this server to talk to websites that
@@ -121,5 +118,3 @@ var requestHandler = function(request, response) {
 //
 // Another way to get around this restriction is to serve you chat
 // client from this domain by setting up static file serving.
-
-exports.requestHandler = requestHandler;
