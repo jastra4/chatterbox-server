@@ -18,16 +18,18 @@ var defaultCorsHeaders = {
   'access-control-max-age': 10 // Seconds.
 };
 
+var data = {results: []};
+
 var requestHandler = function(request, response) {
   const { method, url, postdata } = request;
-  var statusCode = 404;
-  if (request.method === 'PUT') {
-    statusCode = 202;
-  } else if (request.method === 'DELETE') {
-    statusCode = 203;
-  } else if (request.method === 'OPTIONS') {
-    statusCode = 204;
-  }
+  // var statusCode = 404;
+  // if (request.method === 'PUT') {
+  //   statusCode = 202;
+  // } else if (request.method === 'DELETE') {
+  //   statusCode = 203;
+  // } else if (request.method === 'OPTIONS') {
+  //   statusCode = 204;
+  // }
   
 
   var headers = defaultCorsHeaders;
@@ -49,34 +51,46 @@ var requestHandler = function(request, response) {
   // debugging help, but you should always be careful about leaving stray
   // console.logs in your code.
   console.log('Serving request type ' + method + ' for url ' + url);
-  if (request.method === 'POST') {
+
+  if (request.method === 'POST' && request.url === '/classes/messages') {
+
+    if (data[url] === undefined) {
+      data[url] = [];
+    }
+
     var postBody = '';
-    request.on('data', function(data) {
-      postBody += data;
-      console.log('Partial body: ' + postBody);
+    request.on('data', function(message) {
+      console.log(message);
+      postBody += message;
+      
     });
     request.on('end', function() {
-      console.log('Partial body: ' + postBody);
+      data.results.push(JSON.parse(postBody));
+      response.writeHead(201, headers);
+      response.end(postBody);
     });
-    //response.statusCode = 201;
-    response.writeHead(201, headers);
-    response.end(postBody);
-  } else if (request.method === 'GET') {
+
+  } else if (request.method === 'GET' && request.url === '/classes/messages') {
 
   /*  ---- we think this is the problem area: we are getting data request but not accessing current data ---- */
 
-    var body = [];
-    request.on('data', (chunk) => {
-      console.log(chunk);
-      body.push(chunk);  
-    });
-    var result = JSON.stringify({results: body});
-
+    // var body = [];
+    // request.on('data', (chunk) => {
+    //   console.log(chunk);
+    //   body.push(chunk);  
+    // });
+    // var result = JSON.stringify({results: body});
+    var result = JSON.stringify(data);
     response.writeHead(200, headers);
     response.end(result);
+
   } else if (request.method === 'OPTIONS') {
-    response.writeHead(200);
+    
+    response.writeHead(200, headers);
     response.end();
+  } else {
+    response.writeHead(404, headers);
+    response.end();    
   }
 };
   // The outgoing status.
